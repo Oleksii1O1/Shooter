@@ -1,17 +1,24 @@
+import pygame
 from pygame import *
-mixer.init()
-mixer.music.load('space.ogg')
-mixer.music.play()
-fire_sound = mixer.Sound('fire.ogg')
+from random import randint
 
+pygame.mixer.init()
+pygame.mixer.music.load('space.ogg')
+pygame.mixer.music.play()
+fire_sound = pygame.mixer.Sound('fire.ogg')
+
+score = 0 
+lost = 0
 back = "galaxy.jpg"  
-hero = "rocket.png"  
+hero = "rocket.png" 
+vorogo = "ufo.png" 
+font.init()
+font1=font.Font(None, 36) 
 
 class GameSprite(sprite.Sprite):
     def __init__(self, player_image, player_x, player_y, size_x, size_y, player_speed):
         sprite.Sprite.__init__(self)
-        self.image = transform.scale(
-            image.load(player_image), (size_x, size_y))
+        self.image = transform.scale(image.load(player_image), (size_x, size_y))
         self.speed = player_speed
         self.rect = self.image.get_rect()
         self.rect.x = player_x
@@ -31,6 +38,15 @@ class Player(GameSprite):
             self.rect.y -= self.speed
         if keys[K_s] and self.rect.y < main_height - self.rect.height: 
             self.rect.y += self.speed 
+
+class Enemy(GameSprite): 
+    def update(self):
+        self.rect.y += self.speed 
+        if self.rect.y > main_height:
+            global lost
+            self.rect.x = randint(70, main_width - 70)
+            self.rect.y = 0
+            lost=lost +1
     
     def fire(self):
         bullet = Bullet('bullet.png', self.rect.centerx, self.rect.top)
@@ -49,11 +65,19 @@ main_width = 700
 main_height = 500
 display.set_caption("Shooter")
 window = display.set_mode((main_width, main_height))
-background = transform.scale(image.load(back), (main_width,main_height))
+background = transform.scale(image.load(back), (main_width, main_height))
 ship = Player(hero, 5, main_height - 100, 80, 100, 10)
+vorogs = sprite.Group()
+for i in range(1, 8): 
+    vorog = Enemy(vorogo, randint(70, main_width - 70), -20 , 60, 40, randint(2, 7)) 
+    vorogs.add(vorog)
 bullets = sprite.Group()
 finish = False
 game = True  
+
+
+bullet_delay = 500 
+last_bullet_time = 0
 
 while game:
     for e in event.get():
@@ -61,12 +85,22 @@ while game:
             game = False
         elif e.type == KEYDOWN:
             if e.key == K_SPACE:
-                ship.fire()
+                current_time = pygame.time.get_ticks()
+                if current_time - last_bullet_time > bullet_delay:
+                    ship.fire()
+                    last_bullet_time = current_time
                 
     if not finish:
+
         window.blit(background, (0, 0))
-        ship.update()
+        text = font1.render("Рахунок: "+ str (score ), 1,(255,255,255) )
+        window.blit(text,(10,20))
+        textl = font1.render("Пропущено:"+ str (lost ), 1,(255,255,255) )
+        window.blit(textl,(10,50))        
+        ship.update() 
+        vorogs.update()
         ship.reset()
+        vorogs.draw(window)
         bullets.update()
         bullets.draw(window)
         display.update()
